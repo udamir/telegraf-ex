@@ -75,6 +75,7 @@ export interface InlineKeyboardButton {
 
 export interface InlineKeyboardItem {
   button: InlineKeyboardButton
+  params?: { [ key: string ]: any }
   group?: string
   numInRow?: number
 }

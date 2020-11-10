@@ -3,7 +3,7 @@ import { Composer, Middleware, Context } from "telegraf"
 
 import { LocalStateManager, StateManager, IChatState } from "./state"
 import { ContextExtantion, IExtantionOptions } from "."
-import { InlineKeyboard } from "./extra/markup"
+import { InlineKeyboard, InlineKeyboardItem } from "./extra/markup"
 
 export interface INextPhaseData {
   phase: string,
@@ -69,12 +69,6 @@ export interface IDialogMessageDataParams {
   extra?: ExtraReplyMessage
   params?: { [key: string]: any }
   inlineKeyboard?: InlineKeyboardItem[]
-}
-
-export interface InlineKeyboardItem {
-  button: InlineKeyboardButton,
-  numInRow?: number,
-  params?: { [ key: string ]: any }
 }
 
 export class DialogMessage {
