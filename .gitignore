@@ -1,0 +1,16 @@
+.DS_Store
+node_modules/
+dist/
+src/new/
+npm-debug.log
+yarn-error.log
+/config/dev.json
+.env
+
+# Editor directories and files
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
