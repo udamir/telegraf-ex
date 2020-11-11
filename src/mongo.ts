@@ -1,21 +1,37 @@
-import { Schema, Model, Types, Document, model } from "mongoose"
+import { Schema, Model, Types, Document, model, SchemaDefinition, SchemaOptions } from "mongoose"
 
 import { StateManager, IChatState } from "./state"
 import { IDialogState } from "./dialogs"
 import { IPollState } from "./polls"
 
+export const StateSchema = new Schema<IChatState>({
+  id: String,
+  chatId: Number,
+  params: Object,
+})
+
+export const createStateSchema = <T extends Document>(definition: SchemaDefinition, options?: SchemaOptions) => {
+  options = {
+    toObject: {
+      transform(doc, ret) {
+        const { _id, __v, ...rest } = ret
+        return { id: doc.id, ...rest }
+      },
+    },
+    ...options,
+  }
+  return new Schema<T>(Object.assign({}, StateSchema.obj, definition), options)
+}
+
 export interface IPoll extends IPollState, Document {
   id: string
 }
 
-const PollStateSchema = new Schema<IPoll>({
-  id: String,
-  chatId: Number,
+const PollStateSchema = createStateSchema<IPoll>({
   user: Object,
   messageId: Number,
   name: String,
   data: Object,
-  params: Object,
 })
 
 export interface IDialog extends IDialogState, Document {
@@ -23,14 +39,11 @@ export interface IDialog extends IDialogState, Document {
 }
 
 const DialogStateSchema = new Schema<IDialog>({
-  id: String,
-  chatId: Number,
   user: Object,
   userName: String,
   messageId: Number,
   name: String,
   next: Object,
-  params: Object,
 })
 
 export const PollModel = model<IPoll>("poll", PollStateSchema)
@@ -55,8 +68,8 @@ export class MongoStateManager<S extends IChatStateSchema, T extends IChatState>
   }
 
   public async findOne(chatId: number, params?: any): Promise<T> {
-    const poll = this.stateModel && await this.stateModel.findOne({ chatId, ...params }).exec()
-    return poll ? poll.toObject({ versionKey: false }) : null
+    const data = this.stateModel && await this.stateModel.findOne({ chatId, ...params }).exec()
+    return data ? data.toObject({ versionKey: false }) : null
   }
 
   public async findMany( params?: any): Promise<T[]> {
@@ -65,8 +78,8 @@ export class MongoStateManager<S extends IChatStateSchema, T extends IChatState>
   }
 
   public async getOne(id: string) {
-    const poll = this.stateModel && await this.stateModel.findOne({ id } as any).exec()
-    return poll ? poll.toObject({ versionKey: false }) : null
+    const data = this.stateModel && await this.stateModel.findOne({ id } as any).exec()
+    return data ? data.toObject({ versionKey: false }) : null
   }
 
   public async update(id: string, values: any) {

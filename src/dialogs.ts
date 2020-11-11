@@ -434,6 +434,6 @@ export class Dialog<T extends IDialogState> {
       await ctx._dialogs.manager.update(state.id, update)
     }
 
-    return this.handlers[phase](ctx, ctx._dialogs.next(ctx), state)
+    return this.handlers[phase](ctx, ctx._dialogs.next(ctx), { ...state, params: { ...state.params, ...params }})
   }
 }
