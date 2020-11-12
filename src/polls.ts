@@ -138,7 +138,7 @@ export class Polls<T extends IPollState> extends ContextExtantion<IPollContext<T
     if (await this.findPoll(ctx, { messageId: ctx.callbackQuery.message.message_id })) {
       this.execute(ctx, ctx.callbackQuery.data)
     } else {
-      next && next()
+      return next && next()
     }
   }
 

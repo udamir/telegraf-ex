@@ -38,7 +38,7 @@ export interface IDialog extends IDialogState, Document {
   id: string
 }
 
-const DialogStateSchema = new Schema<IDialog>({
+const DialogStateSchema = createStateSchema<IDialog>({
   user: Object,
   userName: String,
   messageId: Number,

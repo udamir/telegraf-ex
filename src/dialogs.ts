@@ -147,9 +147,10 @@ export class DialogMessage {
     return this
   }
 
-  public onMessage(type: MessageSubTypes | "any", phase: string, paramName?: string) {
+  public onMessage(type: MessageSubTypes | "any", phase: string, paramName?: string, timeout?: number) {
     const message = this.data.next.message
-    this.data.next.message = { ...message, [type]: { phase, params: { paramName } } }
+    timeout = timeout && timeout + Date.now()
+    this.data.next.message = { ...message, [type]: { phase, params: { paramName, timeout } } }
     return this
   }
 
@@ -189,7 +190,7 @@ export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogCon
       } else if (ctx.callbackQuery) {
         return dialogs.handleCallbacks(ctx, next)
       } else {
-        next && next()
+        return next && next()
       }
     }, ...middlewares])
   }
@@ -286,7 +287,9 @@ export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogCon
     const messageType = messageTypes.find((type: MessageSubTypes) => ctx.updateSubTypes.indexOf(type) !== -1)
     const phaseData = messageType && (dialog.next.message[messageType] || dialog.next.message.any)
 
-    if (!phaseData) {
+    const timeout = phaseData?.params.timeout < Date.now()
+
+    if (!phaseData || timeout) {
       if (!dialog.next || !("callback" in dialog.next)) {
         await this.exit(ctx)
       }
