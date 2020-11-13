@@ -11,7 +11,7 @@ export interface INextPhaseData {
 }
 
 export interface INextPhaseCallBack {
-  [ id: string ]: INextPhaseData,
+  [ id: string ]: INextPhaseData | undefined,
   _default?: INextPhaseData,
 }
 
@@ -25,7 +25,7 @@ export interface INextPhase {
 }
 
 export interface INextHandler {
-  (message: DialogMessage, params?: { [key: string]: any })
+  (message: DialogMessage, params?: { [key: string]: any }): void
 }
 
 export interface IDialogState extends IChatState {
@@ -40,7 +40,7 @@ export interface IDialogContext<T extends IDialogState> extends Context {
 }
 
 export interface IDialogPhaseHandler<T extends IDialogState> {
-  (ctx: IDialogContext<T>, next?: INextHandler, state?: T)
+  (ctx: IDialogContext<T>, next?: INextHandler, state?: T): void
 }
 
 export type DialogContext = IDialogContext<IDialogState>
@@ -137,7 +137,7 @@ export class DialogMessage {
   }
 
   public inlineKeyboardButtons(buttons: InlineKeyboardButton[][]) {
-    this.data.extra.reply_markup = { inline_keyboard: buttons }
+    this.data.extra!.reply_markup = { inline_keyboard: buttons }
     this.data.next.callback = this.data.next.callback || {}
     return this
   }
@@ -167,7 +167,7 @@ export interface IDialogsOptions<T extends IDialogState> extends IExtantionOptio
 
 export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogContext<T>> {
   public dialogs: { [name: string]: Dialog<T> }
-  public state: T = null
+  public state: T | null = null
   public manager: StateManager<T>
 
   constructor(dialogs?: Dialog<T>[], public options?: IDialogsOptions<T>) {
@@ -176,7 +176,7 @@ export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogCon
     this.name = options.name || "_dialogs"
     this.manager = options.manager || new LocalStateManager()
     this.dialogs = {}
-    dialogs.forEach((dialog: Dialog<T>) => this.dialogs[dialog.name] = dialog)
+    dialogs?.forEach((dialog: Dialog<T>) => this.dialogs[dialog.name] = dialog)
   }
 
   public middleware(): Middleware<IDialogContext<T>> {
@@ -287,7 +287,7 @@ export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogCon
     const messageType = messageTypes.find((type: MessageSubTypes) => ctx.updateSubTypes.indexOf(type) !== -1)
     const phaseData = messageType && (dialog.next.message[messageType] || dialog.next.message.any)
 
-    const timeout = phaseData?.params.timeout < Date.now()
+    const timeout = phaseData && phaseData.params.timeout < Date.now()
 
     if (!phaseData || timeout) {
       if (!dialog.next || !("callback" in dialog.next)) {

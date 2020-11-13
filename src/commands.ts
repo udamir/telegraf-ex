@@ -114,10 +114,13 @@ export class CommandParser extends ContextExtantion<any> {
   }
 
   public parseStep(text: string, index: number, schema: ParseSchema, step): ParseSchema {
+    const oldIndex = index
     const stepSchema = schema.steps[step]
-    // skip spaces
-    while (text.indexOf(" ", index) === index) {
-      index++
+    if (!stepSchema || stepSchema.type !== "prefix" || stepSchema.params.text[0] !== " ") {
+      // skip spaces
+      while (text.indexOf(" ", index) === index) {
+        index++
+      }
     }
     // next space index
     const nextSpace = text.indexOf(" ", index)
@@ -137,9 +140,9 @@ export class CommandParser extends ContextExtantion<any> {
       const num = text.substring(index, nextSpace > 0 ? nextSpace : text.length)
       if (!isNaN(num as any * 1) && num !== "") {
         stepSchema.params.value = Number(num)
-        return this.parseStep(text, index + num.length + 1, schema, step + 1)
+        return this.parseStep(text, index + num.length, schema, step + 1)
       } else if (stepSchema.params.optional) {
-        return this.parseStep(text, index, schema, step + 1)
+        return this.parseStep(text, oldIndex, schema, step + 1)
       } else {
         return null
       }
@@ -147,7 +150,9 @@ export class CommandParser extends ContextExtantion<any> {
       const prefix = stepSchema.params.text
       const prefixEnd = index + prefix.length
       if (stepSchema.params.text === text.substring(index, prefixEnd)) {
-        return this.parseStep(text, prefixEnd + (text.substring(index, nextSpace) === prefix ? 1 : 0), schema, step + 1)
+        return this.parseStep(text, prefixEnd, schema, step + 1)
+      } else if (stepSchema.params.optional) {
+        return this.parseStep(text, oldIndex, schema, step + 1)
       } else {
         return null
       }
