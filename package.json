@@ -1,6 +1,6 @@
 {
   "name": "telegraf-ex",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Extensions to telegraf framework",
   "main": "index.js",
   "types": "index.d.ts",

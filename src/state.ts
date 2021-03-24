@@ -8,12 +8,12 @@ export interface IChatState {
 }
 
 export abstract class StateManager<T extends IChatState>  {
-  public abstract async create(state: T): Promise<T>
-  public abstract async findOne(chatId: number, params?: any): Promise<T>
-  public abstract async findMany(params?: any): Promise<T[]>
-  public abstract async getOne(id: string): Promise<T>
-  public abstract async update(id: string, values: any): Promise<void>
-  public abstract async delete(id: string): Promise<void>
+  public abstract create(state: T): Promise<T>
+  public abstract findOne(chatId: number, params?: any): Promise<T>
+  public abstract findMany(params?: any): Promise<T[]>
+  public abstract getOne(id: string): Promise<T>
+  public abstract update(id: string, values: any): Promise<void>
+  public abstract delete(id: string): Promise<void>
 }
 
 export interface IStateDataIndex {
