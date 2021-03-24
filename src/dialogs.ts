@@ -24,9 +24,7 @@ export interface INextPhase {
   message?: INextPhaseMessage
 }
 
-export interface INextHandler {
-  (message: DialogMessage, params?: { [key: string]: any }): void
-}
+export type INextHandler = (message: DialogMessage, params?: { [key: string]: any }) => void
 
 export interface IDialogState extends IChatState {
   messageId?: number
@@ -39,9 +37,7 @@ export interface IDialogContext<T extends IDialogState> extends Context {
   _dialogs: Dialogs<T>
 }
 
-export interface IDialogPhaseHandler<T extends IDialogState> {
-  (ctx: IDialogContext<T>, next?: INextHandler, state?: T): void
-}
+export type IDialogPhaseHandler<T extends IDialogState> = (ctx: IDialogContext<T>, next?: INextHandler, state?: T) => void
 
 export type DialogContext = IDialogContext<IDialogState>
 
