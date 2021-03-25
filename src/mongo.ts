@@ -4,7 +4,7 @@ import { StateManager, IChatState } from "./state"
 import { IDialogState } from "./dialogs"
 import { IPollState } from "./polls"
 
-export const StateSchema = new Schema<IChatState>({
+export const StateSchema = new Schema<IChatStateSchema>({
   id: String,
   chatId: Number,
   params: Object,
@@ -64,22 +64,27 @@ export class MongoStateManager<S extends IChatStateSchema, T extends IChatState>
 
   public async create(state: T): Promise<T> {
     state.id = Types.ObjectId().toHexString()
-    return (await new this.stateModel(state).save()).toObject({ versionKey: false })
+    const doc = new this.stateModel(state)
+    await doc.save()
+    return doc.toObject({ versionKey: false }) as any
   }
 
   public async findOne(chatId: number, params?: any): Promise<T> {
     const data = this.stateModel && await this.stateModel.findOne({ chatId, ...params }).exec()
-    return data ? data.toObject({ versionKey: false }) : null
+    const state: any = data ? data.toObject({ versionKey: false }) : null
+    return state
   }
 
   public async findMany( params?: any): Promise<T[]> {
     const data = this.stateModel && await this.stateModel.find({ ...params }).exec() || []
-    return data.map((items) => items.toObject({ versionKey: false }))
+    const states: any[] = data.map((items) => items.toObject({ versionKey: false }))
+    return states
   }
 
-  public async getOne(id: string) {
+  public async getOne(id: string): Promise<T | null> {
     const data = this.stateModel && await this.stateModel.findOne({ id } as any).exec()
-    return data ? data.toObject({ versionKey: false }) : null
+    const state: any = data ? data.toObject({ versionKey: false }) : null
+    return state
   }
 
   public async update(id: string, values: any) {

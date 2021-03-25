@@ -1,9 +1,9 @@
 {
   "name": "telegraf-ex",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "Extensions to telegraf framework",
-  "main": "index.js",
-  "types": "index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "patch": "tsc && npm version patch",
     "major": "tsc && npm version major",
@@ -20,16 +20,16 @@
   "author": "Damir Yusipov",
   "license": "MIT",
   "dependencies": {
-    "telegraf": "^3.38.0",
-    "mongoose": "^5.10.13"
+    "mongoose": "^5.12.2",
+    "telegraf": "^3.38.0"
   },
   "devDependencies": {
-    "@types/node": "^14.14.7",
-    "@types/mongoose": "^5.7.37",
-    "typescript": "^3.9.7",
+    "@types/mongoose": "^5.10.4",
+    "@types/node": "^14.14.35",
     "nodemon": "^1.19.4",
     "ts-node": "^8.10.2",
-    "tslint": "^5.20.1"
+    "tslint": "^5.20.1",
+    "typescript": "^3.9.9"
   },
   "jest": {
     "transform": {
