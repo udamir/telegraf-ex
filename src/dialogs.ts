@@ -4,6 +4,7 @@ import { Composer, Middleware, Context } from "telegraf"
 import { LocalStateManager, StateManager, IChatState } from "./state"
 import { ContextExtantion, IExtantionOptions } from "."
 import { InlineKeyboard, InlineKeyboardItem } from "./extra/markup"
+import { IncomingMessage } from "http"
 
 export interface INextPhaseData {
   phase: string,
@@ -37,7 +38,7 @@ export interface IDialogContext<T extends IDialogState> extends Context {
   _dialogs: Dialogs<T>
 }
 
-export type IDialogPhaseHandler<T extends IDialogState> = (ctx: IDialogContext<T>, next?: INextHandler, state?: T) => void
+export type IDialogPhaseHandler<T extends IDialogState> = (ctx: IDialogContext<T>, next?: INextHandler, state?: T | null) => void
 
 export type DialogContext = IDialogContext<IDialogState>
 
@@ -80,7 +81,7 @@ export class DialogMessage {
       }
     }
 
-    return { button, numInRow, params }
+    return { button, numInRow, params, group: "" }
   }
 
   public static inlineButton(text: string, callback_data?: string, url?: string): InlineKeyboardButton {
@@ -138,7 +139,7 @@ export class DialogMessage {
     return this
   }
 
-  public params(params: { [key: string]: any }) {
+  public params(params: { [key: string]: any } = {}) {
     this.data.params = { ...this.data.params, ...params }
     return this
   }
@@ -164,7 +165,7 @@ export interface IDialogsOptions<T extends IDialogState> extends IExtantionOptio
 export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogContext<T>> {
   public dialogs: { [name: string]: Dialog<T> }
   public state: T | null = null
-  public manager: StateManager<T>
+  public manager: StateManager<T> | LocalStateManager<T>
 
   constructor(dialogs?: Dialog<T>[], public options?: IDialogsOptions<T>) {
     super(options)
@@ -180,7 +181,7 @@ export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogCon
     const middlewares = Object.keys(this.dialogs).map((name: string) => this.dialogs[name].middlewares)
     const dialogs = this
     return Composer.compose([(ctx, next) => {
-      ctx[dialogs.name] = dialogs
+      (ctx as any)[dialogs.name] = dialogs
       if (ctx.message) {
         return dialogs.handleMessages(ctx, next)
       } else if (ctx.callbackQuery) {
@@ -192,19 +193,19 @@ export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogCon
   }
 
   public async createDialog(ctx: IDialogContext<T>, name: string, user: User, params?: { [key: string]: any }) {
-    user = user || ctx.message && ctx.message.from
-                || ctx.callbackQuery && ctx.callbackQuery.message.from
-    this.state = await this.manager.create({ chatId: ctx.chat.id, user, name, params } as T)
+    user = user || ctx.message?.from || ctx.callbackQuery?.message?.from
+    this.state = await this.manager.create({ chatId: ctx.chat!.id, user, name, params } as T)
     return this.state
   }
 
   public async findDialog(ctx: IDialogContext<T>, params: { [key: string]: any }) {
-    this.state = await this.manager.findOne(ctx.chat.id, params)
+    this.state = await this.manager.findOne(ctx.chat!.id, params)
     return this.state
   }
 
   public async updateDialogParams(ctx: IDialogContext<T>, params?: { [key: string]: any }) {
     const { state } = ctx._dialogs
+    if (!state) { return }
     return this.manager.update(state.id, { params: { ...state.params, ...params }} )
   }
 
@@ -216,7 +217,11 @@ export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogCon
     }
 
     // save user in dialog
-    user = user || this.state && this.state.user
+    user = user || this.state && this.state.user || undefined
+
+    if (!user) {
+      return this.error(`Cannot update dialog "${dialogName}": user not found!`)
+    }
 
     // find previos
     if (!this.state) {
@@ -231,7 +236,7 @@ export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogCon
     // update dialog state
     const update = { name: dialogName, next: null, params }
     this.state = { ...this.state, ...update }
-    return ctx._dialogs.manager.update(this.state.id, update)
+    return ctx._dialogs.manager.update(this.state!.id, update)
   }
 
   public async enter(ctx: IDialogContext<T>, dialogName: string, user?: User, params?: { [key: string]: any }) {
@@ -257,8 +262,9 @@ export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogCon
     const { name, id } = this.state
 
     // execute on exit handler
-    if (this.dialogs[name].onExitHandler) {
-      await this.dialogs[name].onExitHandler(ctx, this.next(ctx), this.state)
+    const { onExitHandler } = this.dialogs[name]
+    if (onExitHandler) {
+      await onExitHandler(ctx, this.next(ctx), this.state)
     }
 
     this.state = null
@@ -274,16 +280,16 @@ export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogCon
 
   public async handleMessages(ctx: IDialogContext<T>, next: () => {}) {
 
-    const dialog = await this.findDialog(ctx, { "user.id": ctx.message.from.id })
+    const dialog = await this.findDialog(ctx, { "user.id": ctx.message!.from!.id })
     if (!dialog) {
       return next && next()
     }
 
-    const messageTypes = dialog.next && dialog.next.message && Object.keys(dialog.next.message) || []
-    const messageType = messageTypes.find((type: MessageSubTypes) => ctx.updateSubTypes.indexOf(type) !== -1)
-    const phaseData = messageType && (dialog.next.message[messageType] || dialog.next.message.any)
+    const messageTypes = dialog.next?.message && Object.keys(dialog.next.message) || []
+    const messageType = messageTypes.find((type) => ctx.updateSubTypes.indexOf(type as MessageSubTypes) !== -1)
+    const phaseData = messageType ? (dialog.next.message![messageType] || dialog.next.message!.any) : undefined
 
-    const timeout = phaseData && phaseData.params.timeout < Date.now()
+    const timeout = phaseData?.params?.timeout < Date.now()
 
     if (!phaseData || timeout) {
       if (!dialog.next || !("callback" in dialog.next)) {
@@ -292,8 +298,8 @@ export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogCon
       return next && next()
     }
 
-    if (phaseData.params.paramName && messageType) {
-      dialog.params[phaseData.params.paramName] = ctx.message[messageType]
+    if (phaseData!.params?.paramName && messageType) {
+      dialog.params[phaseData.params.paramName] = (ctx.message as any)[messageType]
     }
 
     dialog.messageId = 0
@@ -301,9 +307,9 @@ export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogCon
   }
 
   public async handleCallbacks(ctx: IDialogContext<T>, next: () => {}) {
-    const dialog = await this.findDialog(ctx, { messageId: ctx.callbackQuery.message.message_id })
+    const dialog = await this.findDialog(ctx, { messageId: ctx.callbackQuery!.message!.message_id })
 
-    if (!dialog || (dialog.user.id !== ctx.callbackQuery.from.id)) {
+    if (!dialog || (dialog.user.id !== ctx.callbackQuery!.from.id)) {
       return next && next()
     }
 
@@ -312,8 +318,8 @@ export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogCon
     }
 
     const { callback } = dialog.next
-    const phaseData = callback[ctx.callbackQuery.data] || callback._default
-    const nextPhase = phaseData ? phaseData.phase : ctx.callbackQuery.data
+    const phaseData = callback[ctx.callbackQuery!.data!] || callback._default
+    const nextPhase = phaseData ? phaseData.phase : ctx.callbackQuery!.data
 
     if (nextPhase) {
       dialog.params = { ...dialog.params, ...(phaseData && phaseData.params) }
@@ -332,10 +338,10 @@ export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogCon
       } else {
         // navigate
         if (params && params.dialog && !params.phase) {
-          return dialogs.enter(ctx, params.dialog, dialogs.state.user, params)
+          return dialogs.enter(ctx, params.dialog, dialogs.state!.user, params)
         } else if (params && params.phase) {
-          const dialogName = params.dialog || dialogs.state.name
-          return dialogs.goto(ctx, dialogName, params.phase, dialogs.state.user, params)
+          const dialogName = params.dialog || dialogs.state!.name
+          return dialogs.goto(ctx, dialogName, params.phase, dialogs.state!.user, params)
         } else {
           return dialogs.exit(ctx)
         }
@@ -356,23 +362,23 @@ export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogCon
       params,
     }
 
-    if (ctx.callbackQuery && ctx.callbackQuery.message.message_id === messageId) {
+    if (ctx.callbackQuery?.message!.message_id === messageId) {
        // edit old message
        await ctx.editMessageText(data.text, data.extra)
        stateUpdate.messageId = ctx.callbackQuery.message.message_id
     } else {
       // delete old mssage and send new
       if (messageId) {
-        ctx.telegram.deleteMessage(ctx.chat.id, messageId).catch(this.warning)
+        ctx.telegram.deleteMessage(ctx.chat!.id, messageId).catch(this.warning)
       }
       const message = await ctx.reply(data.text, data.extra)
       stateUpdate.messageId = message.message_id
     }
 
     if (data.next && Object.keys(data.next).length) {
-      this.manager.update(state.id, stateUpdate)
+      this.manager.update(state!.id, stateUpdate)
     } else {
-      this.manager.delete(state.id)
+      this.manager.delete(state!.id)
     }
   }
 }
@@ -382,12 +388,13 @@ export class Dialog<T extends IDialogState> {
   public scenarios: { [name: string]: string[] }
   public middlewares: any
 
-  public onEnterHandler: IDialogPhaseHandler<T>
-  public onExitHandler: IDialogPhaseHandler<T>
+  public onEnterHandler?: IDialogPhaseHandler<T>
+  public onExitHandler?: IDialogPhaseHandler<T>
 
   constructor(public name: string, ...fns: Array<Middleware<any>>) {
     this.handlers = {}
     this.middlewares = Composer.compose(fns)
+    this.scenarios = {}
   }
 
   public use(...fns: Array<Middleware<any>>) {

@@ -34,9 +34,9 @@ class LocalCache implements ICache {
 }
 
 export class Actions extends ContextExtantion<IActionContext> {
-  public throttling: number
+  public throttling?: number
   public params: any
-  public parser: (text: string) => { action: string, params: any }
+  public parser?: (text: string) => { action: string, params: any }
   private cache: ICache
 
   constructor(options?: IActionsOptions) {
@@ -59,18 +59,18 @@ export class Actions extends ContextExtantion<IActionContext> {
             actions.cache.set(key, ctx.callbackQuery.data)
             setTimeout(() => actions.cache.delete(key), actions.throttling)
           } else {
-            next = null
+            return
           }
         }
-        if (next && actions.parser) {
-          const actionData = this.parser(ctx.callbackQuery.data)
+        if (actions.parser) {
+          const actionData = actions.parser(ctx.callbackQuery.data)
           if (actionData) {
             ctx.callbackQuery.data = actionData.action
             ctx[actions.name] = actionData.params
           }
         }
       }
-      next && next()
+      return next()
     }
   }
 }

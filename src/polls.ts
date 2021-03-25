@@ -24,10 +24,10 @@ export interface IPollsOptions<T extends IPollState> extends IExtantionOptions {
 
 export class Polls<T extends IPollState> extends ContextExtantion<IPollContext<T>> {
   public polls: { [name: string]: Poll<T> }
-  public state: T = null
+  public state: T | null = null
   public manager: StateManager<T>
 
-  constructor(polls?: Array<Poll<T>>, options?: IPollsOptions<T>) {
+  constructor(polls: Array<Poll<T>>, options?: IPollsOptions<T>) {
     super(options)
     options = options || {}
     this.name = options.name || "_polls"
@@ -41,7 +41,7 @@ export class Polls<T extends IPollState> extends ContextExtantion<IPollContext<T
     const middlewares = Object.keys(this.polls).map((name: string) => this.polls[name].middleware)
     const polls = this
     return Composer.compose([(ctx, next) => {
-      ctx[polls.name] = polls
+      (ctx as any)[polls.name] = polls
       if (ctx.callbackQuery) {
         return polls.handleCallbacks(ctx, next)
       } else {
@@ -95,7 +95,7 @@ export class Polls<T extends IPollState> extends ContextExtantion<IPollContext<T
     }
 
     if (pollId) {
-      await this.manager.findOne(ctx.chat.id, pollId)
+      await this.manager.findOne(ctx.chat!.id, pollId)
     }
 
     if (!this.state) {
@@ -106,14 +106,13 @@ export class Polls<T extends IPollState> extends ContextExtantion<IPollContext<T
   }
 
   public async findPoll(ctx: IPollContext<T>, params: { [key: string]: any }) {
-    this.state = await this.manager.findOne(ctx.chat.id, params)
+    this.state = await this.manager.findOne(ctx.chat!.id, params)
     return this.state
   }
 
   public async createPoll(ctx: IPollContext<T>, name: string, user?: User, data?: any) {
-    user = user || ctx.message && ctx.message.from
-                || ctx.callbackQuery && ctx.callbackQuery.message.from
-    this.state = await this.manager.create({ chatId: ctx.chat.id, user, name, data } as T)
+    user = user || ctx.message?.from || ctx.callbackQuery?.message?.from
+    this.state = await this.manager.create({ chatId: ctx.chat!.id, user, name, data } as T)
     return this.state
   }
 
@@ -135,8 +134,8 @@ export class Polls<T extends IPollState> extends ContextExtantion<IPollContext<T
 
   public async handleCallbacks(ctx: IPollContext<T>, next: () => {}) {
 
-    if (await this.findPoll(ctx, { messageId: ctx.callbackQuery.message.message_id })) {
-      this.execute(ctx, ctx.callbackQuery.data)
+    if (await this.findPoll(ctx, { messageId: ctx.callbackQuery!.message!.message_id })) {
+      this.execute(ctx, ctx.callbackQuery!.data!)
     } else {
       return next && next()
     }
@@ -149,7 +148,7 @@ export class Polls<T extends IPollState> extends ContextExtantion<IPollContext<T
     }
 
     if (this.state.messageId) {
-      ctx.telegram.deleteMessage(ctx.chat.id, this.state.messageId).catch(console.log)
+      ctx.telegram.deleteMessage(ctx.chat!.id, this.state.messageId).catch(console.log)
     }
 
     const message = await ctx.reply(text, extra)
@@ -171,9 +170,7 @@ export class Polls<T extends IPollState> extends ContextExtantion<IPollContext<T
   }
 }
 
-export interface IActionHandler<T extends IPollState> {
-  (ctx: IPollContext<T>)
-}
+export type IActionHandler<T extends IPollState> = (ctx: IPollContext<T>) => void
 
 export interface IActionHandlers<T extends IPollState> {
   [name: string]: IActionHandler<T>
@@ -183,8 +180,8 @@ export class Poll<T extends IPollState> {
   public actions: IActionHandlers<T>
   public middleware: any
 
-  public onShowHandler: IActionHandler<T>
-  public onStopHandler: IActionHandler<T>
+  public onShowHandler?: IActionHandler<T>
+  public onStopHandler?: IActionHandler<T>
 
   constructor(public name: string, ...fns: Array<PollMiddleware<T>>) {
     this.actions = {}
@@ -211,16 +208,16 @@ export class Poll<T extends IPollState> {
   public async execute(ctx: IPollContext<T>, action: string) {
 
     if (!this.actions[action]) {
-      ctx._polls.error(`Cannot execute action "${action}": action not found!`)
+      return ctx._polls.error(`Cannot execute action "${action}": action not found!`)
     }
 
     const { state } = ctx._polls
     if (!state) {
-      ctx._polls.error(`Cannot execute action "${action}": state not found!`)
+      return ctx._polls.error(`Cannot execute action "${action}": state not found!`)
     }
 
     if (this.name !== state.name) {
-      ctx._polls.error(`Cannot execute action "${action}": wrong state!`)
+      return ctx._polls.error(`Cannot execute action "${action}": wrong state!`)
     }
 
     return this.actions[action](ctx)

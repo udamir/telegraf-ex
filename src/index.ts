@@ -24,7 +24,7 @@ export abstract class ContextExtantion<T extends Context> {
 export const extantions = (ext: Array<ContextExtantion<any>>) => {
 
   const contextSetup = (ctx: Context, next: () => {}) => {
-    ext.forEach((x) => x.name && (ctx[x.name] = x))
+    ext.forEach((x) => x.name && ((ctx as any)[x.name] = x))
     next && next()
   }
 

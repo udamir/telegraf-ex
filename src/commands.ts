@@ -94,7 +94,7 @@ export class CommandParser extends ContextExtantion<any> {
   public middleware() {
     const parser = this
     return (ctx: IParserContext, next: () => {}) => {
-      ctx[parser.name] = parser
+      (ctx as any)[parser.name] = parser
       if (ctx.message && ctx.message.text) {
         parser.execute(ctx.message.text, ctx)
       }
@@ -102,7 +102,7 @@ export class CommandParser extends ContextExtantion<any> {
     }
   }
 
-  public parse(text: string): IParserSchema {
+  public parse(text: string): IParserSchema | null {
 
     for (const { schema, controller } of this.schemas) {
       const parsedSchema = this.parseStep(text, 0, schema, 0)
@@ -113,7 +113,7 @@ export class CommandParser extends ContextExtantion<any> {
     return null
   }
 
-  public parseStep(text: string, index: number, schema: ParseSchema, step): ParseSchema {
+  public parseStep(text: string, index: number, schema: ParseSchema, step: number): ParseSchema | void {
     const oldIndex = index
     const stepSchema = schema.steps[step]
     if (!stepSchema || stepSchema.type !== "prefix" || stepSchema.params.text[0] !== " ") {
@@ -126,7 +126,7 @@ export class CommandParser extends ContextExtantion<any> {
     const nextSpace = text.indexOf(" ", index)
 
     if (!stepSchema) {
-      return index >= text.length ? schema : null
+      return index >= text.length ? schema : undefined
     } else if (stepSchema.type === "text") {
       let wordEnd = nextSpace > 0 && step < schema.steps.length - 1 ? nextSpace : text.length
       let word = text.substring(index, wordEnd)
@@ -144,7 +144,7 @@ export class CommandParser extends ContextExtantion<any> {
       } else if (stepSchema.params.optional) {
         return this.parseStep(text, oldIndex, schema, step + 1)
       } else {
-        return null
+        return undefined
       }
     } else if (stepSchema.type === "prefix") {
       const prefix = stepSchema.params.text
@@ -154,7 +154,7 @@ export class CommandParser extends ContextExtantion<any> {
       } else if (stepSchema.params.optional) {
         return this.parseStep(text, oldIndex, schema, step + 1)
       } else {
-        return null
+        return undefined
       }
     }
   }

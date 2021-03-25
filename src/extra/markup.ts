@@ -29,10 +29,10 @@ export const setActionData = (action: string, params?: any): string => {
   return callback_data.length + ":" + callback_data
 }
 
-export const getActionData = (callback_data: string): IActionData => {
+export const getActionData = (callback_data: string): IActionData | null => {
   const len = callback_data.substring(0, callback_data.indexOf(":")) as any
   if (len && len * 1 === callback_data.length - len.length - 1) {
-    const result = { action: "", params: {} }
+    const result = { action: "", params: {} } as any
     callback_data.split("\x01").forEach((param) => {
       const [key, value] = param.replace(/:+/, "\x01").split("\x01")
       if (key === len) {
@@ -47,11 +47,11 @@ export const getActionData = (callback_data: string): IActionData => {
   }
 }
 
-export const actionButton = (text: string, action: string, params?): InlineKeyboardButton => {
+export const actionButton = (text: string, action: string, params?: any): InlineKeyboardButton => {
   return { text, callback_data: setActionData(action, params) }
 }
 
-export const userActionButton = (userId: number, text: string, action: string, params?): InlineKeyboardButton => {
+export const userActionButton = (userId: number, text: string, action: string, params?: any): InlineKeyboardButton => {
   return { text, callback_data: setActionData(action, { userId, ... params }) }
 }
 
@@ -63,6 +63,7 @@ export const inlineKeyboardItem = (button: InlineKeyboardButton, group?: string,
   return { button, group, numInRow }
 }
 
+// tslint:disable-next-line: interface-name
 export interface InlineKeyboardButton {
   text: string
   url?: string
@@ -73,11 +74,12 @@ export interface InlineKeyboardButton {
   pay?: boolean
 }
 
+// tslint:disable-next-line: interface-name
 export interface InlineKeyboardItem {
   button: InlineKeyboardButton
   params?: { [ key: string ]: any }
-  group?: string
-  numInRow?: number
+  group: string
+  numInRow: number
 }
 
 export class InlineKeyboard {
@@ -109,7 +111,7 @@ export class InlineKeyboard {
     const groups = Array.isArray(group) ? group : [ group ]
     const inline_keyboard: InlineKeyboardButton[][] = []
     this.buttons.forEach((rows) => {
-      const row = []
+      const row: InlineKeyboardButton[] = []
       rows.forEach((item) => {
         if (!item.group || !groups || !groups.length || groups.findIndex((g) => g === item.group ) >= 0) {
           row.push(item.button)
