@@ -43,6 +43,7 @@ const DialogStateSchema = createStateSchema<IDialog>({
   userName: String,
   messageId: Number,
   name: String,
+  params: Object,
   next: Object,
 })
 

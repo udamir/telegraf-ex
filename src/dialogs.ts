@@ -289,7 +289,7 @@ export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogCon
     const messageType = messageTypes.find((type) => ctx.updateSubTypes.indexOf(type as MessageSubTypes) !== -1)
     const phaseData = messageType ? (dialog.next.message![messageType] || dialog.next.message!.any) : undefined
 
-    const timeout = phaseData?.params?.timeout < Date.now()
+    const timeout = phaseData?.params?.timeout ? phaseData?.params?.timeout < Date.now() : false
 
     if (!phaseData || timeout) {
       if (!dialog.next || !("callback" in dialog.next)) {
@@ -299,7 +299,7 @@ export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogCon
     }
 
     if (phaseData!.params?.paramName && messageType) {
-      dialog.params[phaseData.params.paramName] = (ctx.message as any)[messageType]
+      dialog.params = { ...dialog.params, [phaseData.params.paramName]: (ctx.message as any)[messageType] }
     }
 
     dialog.messageId = 0
