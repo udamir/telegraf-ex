@@ -1,9 +1,10 @@
-import { MessageSubTypes, ExtraReplyMessage, User, InlineKeyboardButton } from "telegraf/typings/telegram-types"
+import { ExtraEditMessageText, ExtraReplyMessage, MessageSubType } from "telegraf/typings/telegram-types"
+import { CallbackQuery, InlineKeyboardButton, User } from "typegram"
 import { Composer, Middleware, Context } from "telegraf"
 
 import { LocalStateManager, StateManager, IChatState } from "./state"
-import { ContextExtantion, IExtantionOptions } from "."
 import { InlineKeyboard, InlineKeyboardItem } from "./extra/markup"
+import { ContextExtantion, IExtantionOptions } from "."
 
 export interface INextPhaseData {
   phase: string,
@@ -43,7 +44,7 @@ export type DialogContext = IDialogContext<IDialogState>
 
 export interface IMessageHandler {
   userId: number,
-  messageType: MessageSubTypes[]
+  messageType: string[]
   nextPhase: string
 }
 
@@ -69,7 +70,7 @@ export interface IDialogMessageDataParams {
 
 export class DialogMessage {
 
-  public static inlineKeyboardItem(button: InlineKeyboardButton, ...options: any[]): InlineKeyboardItem {
+  public static inlineKeyboardItem(button: InlineKeyboardButton.CallbackButton, ...options: any[]): InlineKeyboardItem {
     let numInRow = 1
     let params = {}
     for (const option of options) {
@@ -83,8 +84,8 @@ export class DialogMessage {
     return { button, numInRow, params, group: "" }
   }
 
-  public static inlineButton(text: string, callback_data?: string, url?: string): InlineKeyboardButton {
-    return { text, callback_data, url }
+  public static callbackButton(text: string, callback_data: string): InlineKeyboardButton.CallbackButton {
+    return { text, callback_data }
   }
 
   public data: IDialogMessageData
@@ -143,7 +144,7 @@ export class DialogMessage {
     return this
   }
 
-  public onMessage(type: MessageSubTypes | "any", phase: string, paramName?: string, timeout?: number) {
+  public onMessage(type: MessageSubType | "any", phase: string, paramName?: string, timeout?: number) {
     const message = this.data.next.message
     timeout = timeout && timeout + Date.now()
     this.data.next.message = { ...message, [type]: { phase, params: { paramName, timeout } } }
@@ -286,7 +287,7 @@ export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogCon
     }
 
     const messageTypes = dialog.next?.message && Object.keys(dialog.next.message) || []
-    const messageType = messageTypes.find((type) => ctx.updateSubTypes.indexOf(type as MessageSubTypes) !== -1)
+    const messageType = messageTypes.find((type) => ctx.message && type in ctx.message)
     const phaseData = messageType ? (dialog.next.message![messageType] || dialog.next.message!.any) : undefined
 
     const timeout = phaseData?.params?.timeout ? phaseData?.params?.timeout < Date.now() : false
@@ -304,7 +305,9 @@ export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogCon
   }
 
   public async handleCallbacks(ctx: IDialogContext<T>, next: () => {}) {
-    const dialog = await this.findDialog(ctx, { messageId: ctx.callbackQuery!.message!.message_id })
+    const callbackQuery = ctx.callbackQuery as CallbackQuery.DataCallbackQuery
+
+    const dialog = await this.findDialog(ctx, { messageId: callbackQuery.message!.message_id })
 
     if (!dialog || (dialog.user.id !== ctx.callbackQuery!.from.id)) {
       return next && next()
@@ -315,8 +318,8 @@ export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogCon
     }
 
     const { callback } = dialog.next
-    const phaseData = callback[ctx.callbackQuery!.data!] || callback._default
-    const nextPhase = phaseData ? phaseData.phase : ctx.callbackQuery!.data
+    const phaseData = callback[callbackQuery.data!] || callback._default
+    const nextPhase = phaseData ? phaseData.phase : callbackQuery.data
 
     if (nextPhase) {
       dialog.params = { ...dialog.params, ...(phaseData && phaseData.params) }
@@ -361,7 +364,7 @@ export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogCon
 
     if (ctx.callbackQuery?.message!.message_id === messageId) {
        // edit old message
-       await ctx.editMessageText(data.text, data.extra)
+       await ctx.editMessageText(data.text, data.extra as ExtraEditMessageText)
        stateUpdate.messageId = ctx.callbackQuery.message.message_id
     } else {
       // delete old mssage and send new

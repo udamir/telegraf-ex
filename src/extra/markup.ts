@@ -1,3 +1,4 @@
+import { InlineKeyboardButton } from "typegram"
 
 // ineKeyboard exapmle:
 // const inline_keyboard = new InlineKeyboard()
@@ -47,16 +48,12 @@ export const getActionData = (callback_data: string): IActionData | null => {
   }
 }
 
-export const actionButton = (text: string, action: string, params?: any): InlineKeyboardButton => {
+export const actionButton = (text: string, action: string, params?: any): InlineKeyboardButton.CallbackButton => {
   return { text, callback_data: setActionData(action, params) }
 }
 
-export const userActionButton = (userId: number, text: string, action: string, params?: any): InlineKeyboardButton => {
+export const userActionButton = (userId: number, text: string, action: string, params?: any): InlineKeyboardButton.CallbackButton => {
   return { text, callback_data: setActionData(action, { userId, ... params }) }
-}
-
-export const inlineButton = (text: string, callback_data?: string, url?: string): InlineKeyboardButton => {
-  return { text, callback_data, url }
 }
 
 export const inlineKeyboardItem = (button: InlineKeyboardButton, group?: string, numInRow?: number) => {
@@ -64,19 +61,8 @@ export const inlineKeyboardItem = (button: InlineKeyboardButton, group?: string,
 }
 
 // tslint:disable-next-line: interface-name
-export interface InlineKeyboardButton {
-  text: string
-  url?: string
-  callback_data?: string
-  switch_inline_query?: string
-  switch_inline_query_current_chat?: string
-  callback_game?: object
-  pay?: boolean
-}
-
-// tslint:disable-next-line: interface-name
 export interface InlineKeyboardItem {
-  button: InlineKeyboardButton
+  button: InlineKeyboardButton.CallbackButton
   params?: { [ key: string ]: any }
   group: string
   numInRow: number
@@ -85,7 +71,7 @@ export interface InlineKeyboardItem {
 export class InlineKeyboard {
   public buttons: InlineKeyboardItem[][] = []
 
-  public item(button: InlineKeyboardButton, group: string = "", numInRow: number = 1) {
+  public item(button: InlineKeyboardButton.CallbackButton, group: string = "", numInRow: number = 1) {
     const lastRow = this.buttons.length || this.buttons.push([])
     let rowSize = 0
     this.buttons[lastRow - 1].map((item) => rowSize += 1 / item.numInRow)

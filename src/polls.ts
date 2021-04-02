@@ -1,5 +1,5 @@
 import { Context, Middleware, Composer } from "telegraf"
-import { User } from "telegraf/typings/telegram-types"
+import { CallbackQuery, User } from "typegram"
 
 import { LocalStateManager, StateManager, IChatState } from "./state"
 import { ContextExtantion, IExtantionOptions } from "."
@@ -133,9 +133,10 @@ export class Polls<T extends IPollState> extends ContextExtantion<IPollContext<T
   }
 
   public async handleCallbacks(ctx: IPollContext<T>, next: () => {}) {
+    const callbackQuery = ctx.callbackQuery as CallbackQuery.DataCallbackQuery
 
-    if (await this.findPoll(ctx, { messageId: ctx.callbackQuery!.message!.message_id })) {
-      this.execute(ctx, ctx.callbackQuery!.data!)
+    if (await this.findPoll(ctx, { messageId: callbackQuery.message!.message_id })) {
+      this.execute(ctx, callbackQuery.data!)
     } else {
       return next && next()
     }

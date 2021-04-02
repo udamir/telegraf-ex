@@ -95,7 +95,7 @@ export class CommandParser extends ContextExtantion<any> {
     const parser = this
     return (ctx: IParserContext, next: () => {}) => {
       (ctx as any)[parser.name] = parser
-      if (ctx.message && ctx.message.text) {
+      if (ctx.message && "text" in ctx.message) {
         parser.execute(ctx.message.text, ctx)
       }
       next()
