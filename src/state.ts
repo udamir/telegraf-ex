@@ -82,7 +82,7 @@ export class LocalStateManager<T extends IChatState> extends StateManager<T> {
 }
 
 export interface IChatStateContext<T extends IChatState> extends Context {
-  _chat: ChatState<T>
+  $chat: ChatState<T>
 }
 
 export interface IChatStateOptions<T extends IChatState> extends IExtantionOptions {
@@ -97,7 +97,7 @@ export class ChatState<T extends IChatState> extends ContextExtantion<IChatState
   constructor(options: IChatStateOptions<T> = {}, ...fnc: Array<Middleware<any>>) {
     super(options)
     options = options || {}
-    this.name = options.name || "_chat"
+    this.name = options.name || "$chat"
     this.manager = options.manager || new LocalStateManager<T>()
     this.middlewares = Composer.compose(fnc)
   }

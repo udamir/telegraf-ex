@@ -12,7 +12,7 @@ export interface IPollState extends IChatState {
 }
 
 export interface IPollContext<T extends IPollState> extends Context {
-  _polls: Polls<T>
+  $polls: Polls<T>
 }
 
 export type PollMiddleware<T extends IPollState> = Middleware<IPollContext<T>>
@@ -30,7 +30,7 @@ export class Polls<T extends IPollState> extends ContextExtantion<IPollContext<T
   constructor(polls: Array<Poll<T>>, options?: IPollsOptions<T>) {
     super(options)
     options = options || {}
-    this.name = options.name || "_polls"
+    this.name = options.name || "$polls"
     this.manager = options.manager || new LocalStateManager<T>()
     this.polls = {}
     polls.forEach((poll: Poll<T>) => this.polls[poll.name] = poll)
@@ -208,16 +208,16 @@ export class Poll<T extends IPollState> {
   public async execute(ctx: IPollContext<T>, action: string) {
 
     if (!this.actions[action]) {
-      return ctx._polls.error(`Cannot execute action "${action}": action not found!`)
+      return ctx.$polls.error(`Cannot execute action "${action}": action not found!`)
     }
 
-    const { state } = ctx._polls
+    const { state } = ctx.$polls
     if (!state) {
-      return ctx._polls.error(`Cannot execute action "${action}": state not found!`)
+      return ctx.$polls.error(`Cannot execute action "${action}": state not found!`)
     }
 
     if (this.name !== state.name) {
-      return ctx._polls.error(`Cannot execute action "${action}": wrong state!`)
+      return ctx.$polls.error(`Cannot execute action "${action}": wrong state!`)
     }
 
     return this.actions[action](ctx)

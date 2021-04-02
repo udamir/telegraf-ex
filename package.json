@@ -1,6 +1,6 @@
 {
   "name": "telegraf-ex",
-  "version": "0.1.6",
+  "version": "0.1.8",
   "description": "Extensions to telegraf framework",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -21,7 +21,7 @@
   "license": "MIT",
   "dependencies": {
     "mongoose": "^5.12.2",
-    "telegraf": "^3.38.0"
+    "telegraf": "^4.3.0"
   },
   "devDependencies": {
     "@types/mongoose": "^5.10.4",
