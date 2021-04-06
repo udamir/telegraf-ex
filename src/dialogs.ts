@@ -206,7 +206,8 @@ export class Dialogs<T extends IDialogState> extends ContextExtantion<IDialogCon
   public async updateDialogParams(ctx: IDialogContext<T>, params?: { [key: string]: any }) {
     const { state } = ctx.$dialogs
     if (!state) { return }
-    return this.manager.update(state.id, { params: { ...state.params, ...params }} )
+    state.params = { ...state.params, ...params }
+    return this.manager.update(state.id, { params: state.params } )
   }
 
   public async updateState(ctx: IDialogContext<T>, dialogName: string, user?: User, params?: { [key: string]: any }) {
