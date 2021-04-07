@@ -70,7 +70,7 @@ export interface IDialogMessageDataParams {
 
 export class DialogMessage {
 
-  public static inlineKeyboardItem(button: InlineKeyboardButton.CallbackButton, ...options: any[]): InlineKeyboardItem {
+  public static inlineKeyboardItem(button: InlineKeyboardButton, ...options: any[]): InlineKeyboardItem {
     let numInRow = 1
     let params = {}
     for (const option of options) {
@@ -111,8 +111,10 @@ export class DialogMessage {
     const inlineKeyboard = new InlineKeyboard()
     inlineKeyboardItems.forEach(({ button, numInRow, params }) => {
       const id = Math.random().toString(36).substr(3, 10)
-      callback[id] = { phase: button.callback_data || "", params }
-      button.callback_data = id
+      if ("callback_data" in button) {
+        callback[id] = { phase: button.callback_data || "", params }
+        button.callback_data = id
+      }
       inlineKeyboard.item(button, "", numInRow)
     })
     this.data.extra = this.data.extra || {}

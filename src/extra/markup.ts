@@ -62,7 +62,7 @@ export const inlineKeyboardItem = (button: InlineKeyboardButton, group?: string,
 
 // tslint:disable-next-line: interface-name
 export interface InlineKeyboardItem {
-  button: InlineKeyboardButton.CallbackButton
+  button: InlineKeyboardButton
   params?: { [ key: string ]: any }
   group: string
   numInRow: number
@@ -71,7 +71,7 @@ export interface InlineKeyboardItem {
 export class InlineKeyboard {
   public buttons: InlineKeyboardItem[][] = []
 
-  public item(button: InlineKeyboardButton.CallbackButton, group: string = "", numInRow: number = 1) {
+  public item(button: InlineKeyboardButton, group: string = "", numInRow: number = 1) {
     const lastRow = this.buttons.length || this.buttons.push([])
     let rowSize = 0
     this.buttons[lastRow - 1].map((item) => rowSize += 1 / item.numInRow)
