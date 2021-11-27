@@ -9,6 +9,7 @@ export interface IParserContext extends Context {
 interface IParserSchema {
   schema: ParseSchema
   controller: string
+  result?: any[]
 }
 
 export interface IParseSchemaStep {
@@ -71,13 +72,14 @@ export class CommandParser extends ContextExtantion<any> {
 
   public execute(command: string, ctx: IParserContext, params?: any) {
     const data = this.parse(command)
-    if (data && this.items[data.controller]) {
+    if (data && data.result && this.items[data.controller]) {
       params = { ...params }
-      data.schema.steps.forEach((step: IParseSchemaStep) => {
+      for (let i = 0; i < data.schema.steps.length; i++) {
+        const step = data.schema.steps[i]
         if (step.params.name) {
-          params[step.params.name] = step.params.value
+          params[step.params.name] = data.result[i]
         }
-      })
+      }
       this.run(data.controller, ctx, params)
     }
   }
@@ -105,15 +107,17 @@ export class CommandParser extends ContextExtantion<any> {
   public parse(text: string): IParserSchema | null {
 
     for (const { schema, controller } of this.schemas) {
-      const parsedSchema = this.parseStep(text, 0, schema, 0)
-      if (parsedSchema) {
-        return { schema: parsedSchema, controller }
+      try {
+        const result = this.parseStep(text, 0, schema, 0)
+        return { schema, controller, result }
+      } catch (error) {
+        return null
       }
     }
     return null
   }
 
-  public parseStep(text: string, index: number, schema: ParseSchema, step: number): ParseSchema | void {
+  public parseStep(text: string, index: number, schema: ParseSchema, step: number): any[] {
     const oldIndex = index
     const stepSchema = schema.steps[step]
     if (!stepSchema || stepSchema.type !== "prefix" || stepSchema.params.text[0] !== " ") {
@@ -126,7 +130,10 @@ export class CommandParser extends ContextExtantion<any> {
     const nextSpace = text.indexOf(" ", index)
 
     if (!stepSchema) {
-      return index >= text.length ? schema : undefined
+      if (index >= text.length) {
+        return []
+      }
+      throw new Error("Cannot parse")
     } else if (stepSchema.type === "text") {
       let wordEnd = nextSpace > 0 && step < schema.steps.length - 1 ? nextSpace : text.length
       let word = text.substring(index, wordEnd)
@@ -134,28 +141,27 @@ export class CommandParser extends ContextExtantion<any> {
         wordEnd = text.indexOf(" ", wordEnd + 1)
         word = text.substring(index, wordEnd)
       }
-      stepSchema.params.value = word
-      return this.parseStep(text, index + word.length + 1, schema, step + 1)
+      return [word, ...this.parseStep(text, index + word.length + 1, schema, step + 1)]
     } else if (stepSchema.type === "number") {
       const num = text.substring(index, nextSpace > 0 ? nextSpace : text.length)
       if (!isNaN(num as any * 1) && num !== "") {
-        stepSchema.params.value = Number(num)
-        return this.parseStep(text, index + num.length, schema, step + 1)
+        return [Number(num), ...this.parseStep(text, index + num.length, schema, step + 1)]
       } else if (stepSchema.params.optional) {
-        return this.parseStep(text, oldIndex, schema, step + 1)
+        return [, ...this.parseStep(text, oldIndex, schema, step + 1)]
       } else {
-        return undefined
+        throw new Error("Cannot parse")
       }
     } else if (stepSchema.type === "prefix") {
       const prefix = stepSchema.params.text
       const prefixEnd = index + prefix.length
       if (stepSchema.params.text === text.substring(index, prefixEnd)) {
-        return this.parseStep(text, prefixEnd, schema, step + 1)
+        return [, ...this.parseStep(text, prefixEnd, schema, step + 1)]
       } else if (stepSchema.params.optional) {
-        return this.parseStep(text, oldIndex, schema, step + 1)
+        return [, ...this.parseStep(text, oldIndex, schema, step + 1)]
       } else {
-        return undefined
+        throw new Error("Cannot parse")
       }
     }
+    throw new Error("Cannot parse")
   }
 }
