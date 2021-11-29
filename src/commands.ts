@@ -111,7 +111,7 @@ export class CommandParser extends ContextExtantion<any> {
         const result = this.parseStep(text, 0, schema, 0)
         return { schema, controller, result }
       } catch (error) {
-        return null
+        continue
       }
     }
     return null
